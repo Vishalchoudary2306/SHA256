@@ -1,0 +1,423 @@
+
+module sha_256_const (
+  input [5:0] addr,
+  output reg [31:0]k_out
+);
+always @(*) begin
+  case (addr)
+    6'd0: k_out = 32'h428a2f98;  6'd1: k_out = 32'h71374491;
+    6'd2: k_out = 32'hb5c0fbcf;  6'd3: k_out = 32'he9b5dba5;
+    6'd4: k_out = 32'h3956c25b;  6'd5: k_out = 32'h59f111f1;
+    6'd6: k_out = 32'h923f82a4;  6'd7: k_out = 32'hab1c5ed5;
+    6'd8: k_out = 32'hd807aa98;  6'd9: k_out = 32'h12835b01;
+    6'd10: k_out = 32'h243185be; 6'd11: k_out = 32'h550c7dc3;
+    6'd12: k_out = 32'h72be5d74; 6'd13: k_out = 32'h80deb1fe;
+    6'd14: k_out = 32'h9bdc06a7; 6'd15: k_out = 32'hc19bf174;
+    6'd16: k_out = 32'he49b69c1; 6'd17: k_out = 32'hefbe4786;
+    6'd18: k_out = 32'h0fc19dc6; 6'd19: k_out = 32'h240ca1cc;
+    6'd20: k_out = 32'h2de92c6f; 6'd21: k_out = 32'h4a7484aa;
+    6'd22: k_out = 32'h5cb0a9dc; 6'd23: k_out = 32'h76f988da;
+    6'd24: k_out = 32'h983e5152; 6'd25: k_out = 32'ha831c66d;
+    6'd26: k_out = 32'hb00327c8; 6'd27: k_out = 32'hbf597fc7;
+    6'd28: k_out = 32'hc6e00bf3; 6'd29: k_out = 32'hd5a79147;
+    6'd30: k_out = 32'h06ca6351; 6'd31: k_out = 32'h14292967;
+    6'd32: k_out = 32'h27b70a85; 6'd33: k_out = 32'h2e1b2138;
+    6'd34: k_out = 32'h4d2c6dfc; 6'd35: k_out = 32'h53380d13;
+    6'd36: k_out = 32'h650a7354; 6'd37: k_out = 32'h766a0abb;
+    6'd38: k_out = 32'h81c2c92e; 6'd39: k_out = 32'h92722c85;
+    6'd40: k_out = 32'ha2bfe8a1; 6'd41: k_out = 32'ha81a664b;
+    6'd42: k_out = 32'hc24b8b70; 6'd43: k_out = 32'hc76c51a3;
+    6'd44: k_out = 32'hd192e819; 6'd45: k_out = 32'hd6990624;
+    6'd46: k_out = 32'hf40e3585; 6'd47: k_out = 32'h106aa070;
+    6'd48: k_out = 32'h19a4c116; 6'd49: k_out = 32'h1e376c08;
+    6'd50: k_out = 32'h2748774c; 6'd51: k_out = 32'h34b0bcb5;
+    6'd52: k_out = 32'h391c0cb3; 6'd53: k_out = 32'h4ed8aa4a;
+    6'd54: k_out = 32'h5b9cca4f; 6'd55: k_out = 32'h682e6ff3;
+    6'd56: k_out = 32'h748f82ee; 6'd57: k_out = 32'h78a5636f;
+    6'd58: k_out = 32'h84c87814; 6'd59: k_out = 32'h8cc70208;
+    6'd60: k_out = 32'h90befffa; 6'd61: k_out = 32'ha4506ceb;
+    6'd62: k_out = 32'hbef9a3f7; 6'd63: k_out = 32'hc67178f2;
+    default: k_out = 32'h00000000;
+  endcase
+end
+
+  endmodule
+
+module mssg_schd (
+  input[511:0] msg_block,
+  input[2:0] stage,
+  output reg [31:0] w_out0, w_out1, w_out2, w_out3, w_out4, w_out5, w_out6, w_out7
+);
+  wire[31:0] w_orig[0:15];
+  genvar i;
+  generate
+    for (i = 0;i<16 ;i = i+1 ) begin
+      assign w_orig[i] = msg_block[511-32*i -: 32];
+    end
+  endgenerate
+
+  function [31:0] sig_0_msg;
+    input [31:0] x;
+    
+    begin 
+        sig_0_msg = {x[6:0],x[31:7]}^{x[17:0],x[31:18]}^{29'b0,x[31:3]};
+    end
+    
+  endfunction
+
+    function [31:0] sig_1_msg;
+    input [31:0] x;
+    
+    begin 
+        sig_1_msg = {x[16:0],x[31:17]}^{x[18:0],x[31:19]}^{22'b0,x[31:10]};
+    end
+    
+  endfunction
+
+  reg[31:0] w_extend [0:63];
+  integer j;
+
+  always@(*)begin
+    for(j=0; j<16; j=j+1) begin
+      w_extend[j] = w_orig[j];
+    end
+
+    for (j=16;j<64 ;j = j+1 ) begin
+      w_extend[j] = w_extend[j-16] + sig_0_msg(w_extend[j-15]) +
+                    w_extend[j-7] + sig_1_msg(w_extend[j-2]);
+
+    end
+
+    ///////out eight word based on the statges
+    w_out0 = w_extend[stage*8 + 0];
+    w_out1 = w_extend[stage*8 + 1];
+    w_out2 = w_extend[stage*8 + 2];
+    w_out3 = w_extend[stage*8 + 3];
+    w_out4 = w_extend[stage*8 + 4];
+    w_out5 = w_extend[stage*8 + 5];
+    w_out6 = w_extend[stage*8 + 6];
+    w_out7 = w_extend[stage*8 + 7];
+  end
+endmodule
+
+///fixed round function
+
+module sha_256_round (
+  input[31:0] a, b, c, d, e, f, g, h,
+  input[31:0] w0, w1, w2, w3, w4, w5, w6, w7,
+  input[31:0] k0, k1, k2, k3, k4, k5, k6, k7,
+  output[31:0] new_a, new_b, new_c, new_d, new_e, new_f, new_g, new_h
+);
+
+function [31:0]ch;
+  input[31:0] x,y,z;
+  begin
+    ch = (x&y)^(~x&z);
+  end
+  
+endfunction
+
+function [31:0]maj;
+  input[31:0] x,y,z;
+  begin
+    maj = (x&y)^(x&z)^(y&z);
+  end
+  
+endfunction
+
+function [31:0]sig_0_comp;
+  input[31:0] x;
+  begin
+    sig_0_comp = {x[1:0],x[31:2]}^{x[12:0],x[31:13]}^{x[21:0],x[31:22]};
+  end
+  
+endfunction
+
+function [31:0]sig_1_comp;
+  input[31:0] x;
+  begin
+    sig_1_comp = {x[5:0],x[31:6]}^{x[10:0],x[31:11]}^{x[24:0],x[31:25]};
+  end
+  
+endfunction
+
+////intermediatee variables for the eight rounds
+
+wire [31:0] a1,b1,c1,d1,e1,f1,g1,h1;
+wire [31:0] a2,b2,c2,d2,e2,f2,g2,h2;
+wire [31:0] a3,b3,c3,d3,e3,f3,g3,h3;
+wire [31:0] a4,b4,c4,d4,e4,f4,g4,h4;
+wire [31:0] a5,b5,c5,d5,e5,f5,g5,h5;
+wire [31:0] a6,b6,c6,d6,e6,f6,g6,h6;
+wire [31:0] a7,b7,c7,d7,e7,f7,g7,h7;
+
+
+////round1
+wire [31:0]t1_1 = h + sig_1_comp(e) + ch(e,f,g) +k0 +w0;
+wire [31:0]t2_1 = sig_0_comp(a) + maj(a,b,c);
+assign a1 = t1_1 +t2_1;
+assign b1 = a;
+assign c1 = b;
+assign d1 = c;
+assign e1 = d + t1_1;
+assign f1 = e;
+assign g1 = f;
+assign h1 = g;
+
+////round2
+wire [31:0]t1_2 = h1 + sig_1_comp(e1) + ch(e1,f1,g1) +k1 +w1;
+wire [31:0]t2_2 = sig_0_comp(a1) + maj(a1,b1,c1);
+assign a2 = t1_2 +t2_2;
+assign b2 = a1;
+assign c2 = b1;
+assign d2 = c1;
+assign e2 = d1 + t1_2;
+assign f2 = e1;
+assign g2 = f1;
+assign h2 = g1;
+
+////round3
+wire [31:0]t1_3 = h2 + sig_1_comp(e2) + ch(e2,f2,g2) +k2 +w2;
+wire [31:0]t2_3 = sig_0_comp(a2) + maj(a2,b2,c2);
+assign a3 = t1_3 +t2_3;
+assign b3 = a2;
+assign c3 = b2;
+assign d3 = c2;
+assign e3 = d2 + t1_3;
+assign f3 = e2;
+assign g3 = f2;
+assign h3 = g2;
+
+////round4
+wire [31:0]t1_4 = h3 + sig_1_comp(e3) + ch(e3,f3,g3) +k3 +w3;
+wire [31:0]t2_4 = sig_0_comp(a3) + maj(a3,b3,c3);
+assign a4 = t1_4 +t2_4;
+assign b4 = a3;
+assign c4 = b3;
+assign d4 = c3;
+assign e4 = d3 + t1_4;
+assign f4 = e3;
+assign g4 = f3;
+assign h4 = g3;
+
+////round5
+wire [31:0]t1_5 = h4 + sig_1_comp(e4) + ch(e4,f4,g4) +k4 +w4;
+wire [31:0]t2_5 = sig_0_comp(a4) + maj(a4,b4,c4);
+assign a5 = t1_5 +t2_5;
+assign b5 = a4;
+assign c5 = b4;
+assign d5 = c4;
+assign e5 = d4 + t1_5;
+assign f5 = e4;
+assign g5 = f4;
+assign h5 = g4;
+
+////round6
+wire [31:0]t1_6 = h5 + sig_1_comp(e5) + ch(e5,f5,g5) +k5 +w5;
+wire [31:0]t2_6 = sig_0_comp(a5) + maj(a5,b5,c5);
+assign a6 = t1_6 +t2_6;
+assign b6 = a5;
+assign c6 = b5;
+assign d6 = c5;
+assign e6 = d5 + t1_6;
+assign f6 = e5;
+assign g6 = f5;
+assign h6 = g5;
+
+////round7
+wire [31:0]t1_7 = h6 + sig_1_comp(e6) + ch(e6,f6,g6) +k6 +w6;
+wire [31:0]t2_7 = sig_0_comp(a6) + maj(a6,b6,c6);
+assign a7 = t1_7 +t2_7;
+assign b7 = a6;
+assign c7 = b6;
+assign d7 = c6;
+assign e7 = d6 + t1_7;
+assign f7 = e6;
+assign g7 = f6;
+assign h7 = g6;
+
+////round8
+wire [31:0]t1_8 = h7 + sig_1_comp(e7) + ch(e7,f7,g7) +k7 +w7;
+wire [31:0]t2_8 = sig_0_comp(a7) + maj(a7,b7,c7);
+assign new_a = t1_8 +t2_8;
+assign new_b = a7;
+assign new_c = b7;
+assign new_d = c7;
+assign new_e = d7 + t1_8;
+assign new_f = e7;
+assign new_g = f7;
+assign new_h = g7;
+  
+endmodule
+
+
+///////sha_256_core
+module sha_256_core (
+  input clk, rst_n, start, 
+  input [511:0] msg_block,
+  output reg [255:0] digest,
+  output reg done
+);
+  /////SHAA-256 starting values of hash
+  localparam [31:0] H0_init = 32'h6a09e667;
+  localparam [31:0] H1_init = 32'hbb67ae85;
+  localparam [31:0] H2_init = 32'h3c6ef372;
+  localparam [31:0] H3_init = 32'ha54ff53a;
+  localparam [31:0] H4_init = 32'h510e527f;
+  localparam [31:0] H5_init = 32'h9b05688c;
+  localparam [31:0] H6_init = 32'h1f83d9ab;
+  localparam [31:0] H7_init = 32'h5be0cd19;
+
+
+  ////FSM
+
+  localparam IDLE = 2'b00;
+  localparam PROCESS = 2'b01;
+  localparam FINALIZE = 2'b10;
+  localparam DONE = 2'b11;
+
+
+  ////Reg
+  reg [1:0] state;
+  reg [2:0] cycle_count;
+  reg [31:0] a, b, c, d, e, f, g, h;
+  reg [31:0] h0, h1, h2, h3, h4, h5, h6, h7;
+  reg [511:0] msg_reg;
+
+  wire[31:0] w0, w1, w2, w3, w4, w5, w6, w7;
+  wire[31:0] k0, k1, k2, k3, k4, k5, k6, k7;
+  wire[31:0] new_a, new_b, new_c, new_d, new_e, new_f, new_g, new_h;
+
+  mssg_schd mssg_schedlue(
+    .msg_block(msg_reg),
+    .stage(cycle_count),
+    .w_out0(w0),.w_out1(w1),.w_out2(w2),.w_out3(w3),.w_out4(w4),.w_out5(w5),.w_out6(w6),.w_out7(w7)
+  );
+
+  ///instaniate constants 
+
+  wire [5:0] k_addr_base = {cycle_count,3'b000};
+  sha_256_const k_gen_0 (.addr(k_addr_base + 6'd0),.k_out(k0));
+  sha_256_const k_gen_1 (.addr(k_addr_base + 6'd1),.k_out(k1));
+  sha_256_const k_gen_2 (.addr(k_addr_base + 6'd2),.k_out(k2));
+  sha_256_const k_gen_3 (.addr(k_addr_base + 6'd3),.k_out(k3));
+  sha_256_const k_gen_4 (.addr(k_addr_base + 6'd4),.k_out(k4));
+  sha_256_const k_gen_5 (.addr(k_addr_base + 6'd5),.k_out(k5));
+  sha_256_const k_gen_6 (.addr(k_addr_base + 6'd6),.k_out(k6));
+  sha_256_const k_gen_7 (.addr(k_addr_base + 6'd7),.k_out(k7));
+
+  ////instantiate round_func
+  sha_256_round round_func(
+    .a(a),.b(b),.c(c),.d(d),.e(e),.f(f),.g(g),.h(h),
+    .w0(w0),.w1(w1),.w2(w2),.w3(w3),.w4(w4),.w5(w5),.w6(w6),.w7(w7),
+    .k0(k0),.k1(k1),.k2(k2),.k3(k3),.k4(k4),.k5(k5),.k6(k6),.k7(k7),
+    .new_a(new_a),.new_b(new_b),.new_c(new_c),.new_d(new_d),.new_e(new_e),.new_f(new_f),.new_g(new_g),.new_h(new_h)
+
+  );
+
+  ////state_machine
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      state <= IDLE;
+      cycle_count <= 3'd0;
+      done <= 1'b0;
+      digest <= 256'd0;
+      msg_reg <= 512'd0;
+
+      ///starting hash values
+      h0<=H0_init;h1<=H1_init;h2<=H2_init;h3<=H3_init;h4<=H4_init;h5<=H5_init;h6<=H6_init;h7<=H7_init;
+      a<=32'd0;
+      b<=32'd0;
+      c<=32'd0;
+      d<=32'd0;
+      e<=32'd0;
+      f<=32'd0;
+      g<=32'd0;
+      h<=32'd0;
+      
+    end else begin
+      case (state)
+        IDLE:begin
+          done<=1'b0;
+          if (start) begin
+            state <= PROCESS;
+            msg_reg <= msg_block;
+            cycle_count <= 3'd0;
+            a<=h0;b<=h1;c<=h2;d<=h3;e<=h4;f<=h5;g<=h6;h<=h7;
+            
+            end
+          end 
+
+        PROCESS: begin
+          a <= new_a;
+          b <= new_b;
+          c <= new_c;
+          d <= new_d;
+          e <= new_e;
+          f <= new_f;
+          g <= new_g;
+          h <= new_h;
+
+          cycle_count<=cycle_count +1; 
+
+          if (cycle_count == 3'd7) begin
+            state <= FINALIZE;
+            
+          end
+        end
+
+        FINALIZE: begin
+          h0 <= h0 + a;
+          h1 <= h1 + b;
+          h2 <= h2 + c;
+          h3 <= h3 + d;
+          h4 <= h4 + e;
+          h5 <= h5 + f;
+          h6 <= h6 + g;
+          h7 <= h7 + h;
+
+          ///out
+          digest <= {h0 + a,h1 + b,h2 + c,h3 + d,h4 + e,h5 + f,h6 + g,h7 + h};
+          done<=1'b1;
+          state<= DONE;
+        end
+
+        DONE: begin
+          if (!start) begin
+            state <=IDLE;
+            done <= 1'b0;
+            
+          end
+        end
+        default: state <= IDLE;
+      endcase
+
+    end
+    
+  end
+
+
+endmodule
+
+
+////TOP
+module sha_256_top (
+  input clk, rst_n, start,
+  input [511:0] message,
+  output [255:0] hash_out,
+  output hash_valid
+);
+  sha_256_core core(
+    .clk(clk),
+    .rst_n(rst_n),
+    .start(start),
+    .msg_block(message),
+    .digest(hash_out),
+    .done(hash_valid)
+  );
+
+endmodule
+
+
+
+
